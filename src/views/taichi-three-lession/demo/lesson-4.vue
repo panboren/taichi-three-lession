@@ -290,11 +290,12 @@ async function initTaichi() {
 // 创建 Three.js 网格
 function createGrid() {
   const geometry = new THREE.PlaneGeometry(10, 10, size - 1, size - 1)
-  
-  // 创建顶点颜色属性
-  const colors = new Float32Array((size) * (size) * 3)
+
+  // 创建顶点颜色属性 - 顶点数量是 size * size
+  const vertexCount = geometry.attributes.position.count
+  const colors = new Float32Array(vertexCount * 3)
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  
+
   const material = new THREE.MeshBasicMaterial({
     vertexColors: true,
     wireframe: true,
@@ -304,6 +305,8 @@ function createGrid() {
   gridMesh = new THREE.Mesh(geometry, material)
   gridMesh.rotation.x = -Math.PI / 2
   scene.add(gridMesh)
+
+  console.log(`创建网格: size=${size}, 顶点数=${vertexCount}, 期望=${size * size}`)
 }
 
 // 更新网格颜色
@@ -313,46 +316,61 @@ async function updateGrid() {
   try {
     await tiUpdate()
 
-    // 从 GPU 读取数据
+    // 从 GPU 读取数据 - gridData 是 2D 数组
     const gridData = await tiGrid.toArray()
 
+    // 检查第一个元素，了解数据结构
+    if (gridData.length > 0 && gridData[0]) {
+      console.log('gridData[0][0]:', gridData[0][0])
+      console.log('gridData[0] 长度:', gridData[0].length)
+    }
+
     // 更新 Three.js 网格颜色
-    const positions = gridMesh.geometry.attributes.position
     const colors = gridMesh.geometry.attributes.color
 
-    for (let x = 0; x < size; x++) {
-      for (let y = 0; y < size; y++) {
-        const index = x * size + y
-        // 2D 字段使用一维索引访问（行优先存储）
-        const vector = gridData[x * size + y]
+    // 添加边界检查
+    const dataRows = gridData.length
+    const dataCols = dataRows > 0 ? gridData[0].length : 0
 
+    console.log(`数据尺寸: ${dataRows}x${dataCols}, 期望: ${size}x${size}`)
+
+    // 遍历所有网格点
+    for (let x = 0; x < Math.min(size, dataRows); x++) {
+      for (let y = 0; y < Math.min(size, dataCols); y++) {
+        // Taichi.js 2D 字段: gridData[x][y]
+        const vector = gridData[x][y]
+
+        // 跳过无效数据
         if (!vector) {
-          console.warn(`数据缺失: [${x}, ${y}], index: ${index}, gridData.length: ${gridData.length}`)
           continue
         }
 
+        // Three.js 顶点索引 (列优先: x + size * y)
+        const vertexIndex = x + size * y
+
+        // 安全访问 vector 的元素
+        const vx = vector[0] !== undefined ? vector[0] : 0
+        const vy = vector[1] !== undefined ? vector[1] : 0
+        const vz = vector[2] !== undefined ? vector[2] : 0
+
         let r, g, b
         if (displayMode.value === 'density') {
-          r = vector[0]
-          g = vector[1]
-          b = vector[2]
+          r = vx
+          g = vy
+          b = vz
         } else if (displayMode.value === 'x') {
-          r = g = b = vector[0]
+          r = g = b = vx
         } else if (displayMode.value === 'y') {
-          r = g = b = vector[1]
+          r = g = b = vy
         } else if (displayMode.value === 'z') {
-          r = g = b = vector[2]
+          r = g = b = vz
         }
 
-        colors.setXYZ(index, r, g, b)
-
-        // 同时更新 Z 位置（起伏效果）
-        positions.setZ(index, vector[0] * 2)
+        colors.setXYZ(vertexIndex, r, g, b)
       }
     }
 
     colors.needsUpdate = true
-    positions.needsUpdate = true
   } catch (error) {
     console.error('更新失败:', error)
     status.value = '错误'
@@ -378,8 +396,14 @@ async function initGrid() {
 
   if (gridMesh) {
     scene.remove(gridMesh)
-    gridMesh.geometry.dispose()
-    (gridMesh.material as THREE.Material).dispose()
+    // 安全释放几何体
+    if (gridMesh.geometry && typeof gridMesh.geometry.dispose === 'function') {
+      gridMesh.geometry.dispose()
+    }
+    // 安全释放材质
+    if (gridMesh.material && typeof gridMesh.material.dispose === 'function') {
+      gridMesh.material.dispose()
+    }
   }
 
   await initTaichi()
@@ -414,8 +438,12 @@ onMounted(async () => {
 onUnmounted(() => {
   if (gridMesh) {
     scene.remove(gridMesh)
-    gridMesh.geometry.dispose()
-    (gridMesh.material as THREE.Material).dispose()
+    if (gridMesh.geometry && typeof gridMesh.geometry.dispose === 'function') {
+      gridMesh.geometry.dispose()
+    }
+    if (gridMesh.material && typeof gridMesh.material.dispose === 'function') {
+      gridMesh.material.dispose()
+    }
   }
   if (renderer) {
     renderer.dispose()

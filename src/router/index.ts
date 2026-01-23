@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'ultimate-final首页' }
   },
   {
+    path: '/page-tenxun',
+    name: 'page-tenxun',
+    component: () => import('@/views/page-tenxun/index.vue'),
+    meta: { title: 'page-tenxun首页' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/Error/404.vue'),

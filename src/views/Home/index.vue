@@ -5,6 +5,7 @@
 <template>
   <div class="home-container">
     home
+    <img src="https://zooow-1258443890.cos.ap-guangzhou.myqcloud.com/3.png" alt="">
   </div>
 </template>
 

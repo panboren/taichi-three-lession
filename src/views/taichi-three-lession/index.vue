@@ -181,6 +181,14 @@ import Lesson1 from './demo/lesson-1.vue'
 import Lesson2 from './demo/lesson-2.vue'
 import Lesson3 from './demo/lesson-3.vue'
 import Lesson4 from './demo/lesson-4.vue'
+import Lesson5 from './demo/lesson-5.vue'
+import Lesson6 from './demo/lesson-6.vue'
+import Lesson7 from './demo/lesson-7.vue'
+import Lesson8 from './demo/lesson-8.vue'
+import Lesson9 from './demo/lesson-9.vue'
+import Lesson10 from './demo/lesson-10.vue'
+import Lesson11 from './demo/lesson-11.vue'
+import Lesson12 from './demo/lesson-12.vue'
 
 // 当前展示的课程
 const currentLesson = shallowRef<any>(null)
@@ -301,6 +309,30 @@ function selectCourse(course: any) {
       break
     case 4:
       currentLesson.value = Lesson4
+      break
+    case 5:
+      currentLesson.value = Lesson5
+      break
+    case 6:
+      currentLesson.value = Lesson6
+      break
+    case 7:
+      currentLesson.value = Lesson7
+      break
+    case 8:
+      currentLesson.value = Lesson8
+      break
+    case 9:
+      currentLesson.value = Lesson9
+      break
+    case 10:
+      currentLesson.value = Lesson10
+      break
+    case 11:
+      currentLesson.value = Lesson11
+      break
+    case 12:
+      currentLesson.value = Lesson12
       break
     default:
       alert(`${course.title} 即将推出！`)

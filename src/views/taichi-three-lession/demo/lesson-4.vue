@@ -20,16 +20,33 @@
         <div class="section">
           <h3>🎯 什么是字段（Field）？</h3>
           <p>
-            <strong>字段</strong>是 Taichi.js 中的核心数据结构，存储在 GPU 显存中。
-            可以把它理解为"GPU 上的数组"，但比普通数组更强大、更高效。
+            <strong>字段</strong>
+            是 Taichi.js 中的核心数据结构，存储在 GPU 显存中。 可以把它理解为"GPU
+            上的数组"，但比普通数组更强大、更高效。
           </p>
           <div class="highlight-box">
             <strong>字段的特点：</strong>
             <ul>
-              <li>📦 <strong>GPU 显存存储</strong>：数据直接存储在 GPU 上，避免频繁传输</li>
-              <li>⚡ <strong>并行访问</strong>：GPU 可以同时访问多个字段元素</li>
-              <li>🎯 <strong>类型安全</strong>：每个字段有明确的类型定义</li>
-              <li>📐 <strong>多维支持</strong>：支持 1D、2D、3D 甚至更高维度</li>
+              <li>
+                📦
+                <strong>GPU 显存存储</strong>
+                ：数据直接存储在 GPU 上，避免频繁传输
+              </li>
+              <li>
+                ⚡
+                <strong>并行访问</strong>
+                ：GPU 可以同时访问多个字段元素
+              </li>
+              <li>
+                🎯
+                <strong>类型安全</strong>
+                ：每个字段有明确的类型定义
+              </li>
+              <li>
+                📐
+                <strong>多维支持</strong>
+                ：支持 1D、2D、3D 甚至更高维度
+              </li>
             </ul>
           </div>
         </div>
@@ -145,7 +162,14 @@ await init()
             <div class="demo-controls">
               <label>
                 网格大小: {{ gridSize }}x{{ gridSize }}
-                <input type="range" v-model.number="gridSize" min="10" max="100" step="10" @change="initGrid" />
+                <input
+                  v-model.number="gridSize"
+                  type="range"
+                  min="10"
+                  max="100"
+                  step="10"
+                  @change="initGrid"
+                />
               </label>
               <label>
                 显示模式:
@@ -158,9 +182,12 @@ await init()
               </label>
               <button @click="animateGrid">{{ isAnimating ? '暂停' : '动画' }}</button>
             </div>
-            <div class="demo-canvas-container" ref="canvasContainer"></div>
+            <div ref="canvasContainer" class="demo-canvas-container"></div>
             <div class="demo-info">
-              <p>状态: <span :class="statusClass">{{ status }}</span></p>
+              <p>
+                状态:
+                <span :class="statusClass">{{ status }}</span>
+              </p>
               <p>网格点数: {{ gridSize * gridSize }}</p>
             </div>
           </div>
@@ -181,12 +208,8 @@ await init()
       </div>
 
       <div class="navigation">
-        <button class="nav-btn prev" @click="goToPrev">
-          ← 第3课：第一个粒子系统
-        </button>
-        <button class="nav-btn next" @click="goToNext">
-          第5课：GPU 计算与数据传输 →
-        </button>
+        <button class="nav-btn prev" @click="goToPrev">← 第3课：第一个粒子系统</button>
+        <button class="nav-btn next" @click="goToNext">第5课：GPU 计算与数据传输 →</button>
       </div>
     </div>
   </div>
@@ -254,7 +277,7 @@ async function initTaichi() {
 
     // 创建 2D 向量字段：每个网格点一个 3D 向量
     tiGrid = ti.Vector.field(3, ti.f32, [size, size])
-    tiTime = ti.field(ti.f32, [1])  // 标量字段，用于存储时间
+    tiTime = ti.field(ti.f32, [1]) // 标量字段，用于存储时间
 
     ti.addToKernelScope({ tiGrid, tiTime, size })
 
@@ -266,8 +289,8 @@ async function initTaichi() {
       for (let x of ti.range(size)) {
         for (let y of ti.range(size)) {
           // 使用正弦波创建动态效果
-          let fx = x / size * 4.0
-          let fy = y / size * 4.0
+          let fx = (x / size) * 4.0
+          let fy = (y / size) * 4.0
           tiGrid[[x, y]] = [
             ti.sin(fx + t) * 0.5 + 0.5,
             ti.sin(fy + t) * 0.5 + 0.5,
@@ -558,10 +581,18 @@ onUnmounted(() => {
       border-radius: 10px;
       padding: 15px;
 
-      &.scalar { border-color: rgba(100, 200, 255, 0.4); }
-      &.vector { border-color: rgba(100, 255, 100, 0.4); }
-      &.matrix { border-color: rgba(255, 200, 100, 0.4); }
-      &.multidim { border-color: rgba(255, 100, 200, 0.4); }
+      &.scalar {
+        border-color: rgba(100, 200, 255, 0.4);
+      }
+      &.vector {
+        border-color: rgba(100, 255, 100, 0.4);
+      }
+      &.matrix {
+        border-color: rgba(255, 200, 100, 0.4);
+      }
+      &.multidim {
+        border-color: rgba(255, 100, 200, 0.4);
+      }
 
       h4 {
         margin: 0 0 10px 0;
@@ -632,7 +663,7 @@ onUnmounted(() => {
         gap: 10px;
         font-size: 14px;
 
-        input[type="range"],
+        input[type='range'],
         select {
           cursor: pointer;
           padding: 5px;
@@ -671,10 +702,21 @@ onUnmounted(() => {
         font-size: 14px;
         margin-bottom: 5px;
 
-        .running { color: #00ff88; font-weight: bold; }
-        .paused { color: #ffaa00; font-weight: bold; }
-        .error { color: #ff4444; font-weight: bold; }
-        .idle { color: rgba(255, 255, 255, 0.7); }
+        .running {
+          color: #00ff88;
+          font-weight: bold;
+        }
+        .paused {
+          color: #ffaa00;
+          font-weight: bold;
+        }
+        .error {
+          color: #ff4444;
+          font-weight: bold;
+        }
+        .idle {
+          color: rgba(255, 255, 255, 0.7);
+        }
       }
     }
   }

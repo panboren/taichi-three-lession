@@ -83,6 +83,29 @@
             </div>
           </div>
 
+          <!-- 阶段五：高级GPU计算技术 -->
+          <div class="stage">
+            <div class="stage-title">阶段五：高级GPU计算技术</div>
+            <div class="stage-desc">深入学习 WebGPU Compute Shader 和并行算法</div>
+            <div class="courses">
+              <div
+                v-for="(course, idx) in stage5Courses"
+                :key="idx"
+                class="course-card"
+                @click="selectCourse(course)"
+              >
+                <div class="course-num">L{{ course.number }}</div>
+                <div class="course-info">
+                  <h3>{{ course.title }}</h3>
+                  <p>{{ course.description }}</p>
+                  <div class="tags">
+                    <span v-for="tag in course.tags" :key="tag" class="tag">{{ tag }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 阶段四：综合应用 -->
           <div class="stage">
             <div class="stage-title">阶段四：综合应用</div>
@@ -148,12 +171,20 @@
         <div class="concepts-grid">
           <div class="concept-card">
             <h3>1. 性能分工</h3>
-            <p><strong>Taichi.js</strong> 负责计算密集型任务，利用 GPU 并行能力大幅提升物理计算性能。</p>
-            <p><strong>Three.js</strong> 专注于渲染，提供高质量的 3D 图形展示。</p>
+            <p>
+              <strong>Taichi.js</strong>
+              负责计算密集型任务，利用 GPU 并行能力大幅提升物理计算性能。
+            </p>
+            <p>
+              <strong>Three.js</strong>
+              专注于渲染，提供高质量的 3D 图形展示。
+            </p>
           </div>
           <div class="concept-card">
             <h3>2. 数据共享</h3>
-            <p>通过 ArrayBuffer、Texture 等方式在 GPU 计算和渲染之间共享数据，减少 CPU-GPU 传输开销。</p>
+            <p>
+              通过 ArrayBuffer、Texture 等方式在 GPU 计算和渲染之间共享数据，减少 CPU-GPU 传输开销。
+            </p>
             <p>优化传输策略对性能至关重要。</p>
           </div>
           <div class="concept-card">
@@ -167,9 +198,7 @@
 
     <!-- 课程内容展示区域 -->
     <div v-else class="lesson-viewer">
-      <button class="close-lesson" @click="closeLesson">
-        ← 返回课程列表
-      </button>
+      <button class="close-lesson" @click="closeLesson">← 返回课程列表</button>
       <component :is="currentLesson" />
     </div>
   </div>
@@ -189,6 +218,7 @@ import Lesson9 from './demo/lesson-9.vue'
 import Lesson10 from './demo/lesson-10.vue'
 import Lesson11 from './demo/lesson-11.vue'
 import Lesson12 from './demo/lesson-12.vue'
+import Lesson13 from './demo/lesson-13.vue'
 
 // 当前展示的课程
 const currentLesson = shallowRef<any>(null)
@@ -212,7 +242,8 @@ const stage1Courses = ref([
   {
     number: 3,
     title: '第一个粒子系统',
-    description: '真正展示 Taichi.js + Three.js 的协作：使用 Taichi.js 在 GPU 上计算粒子位置，Three.js 负责渲染。',
+    description:
+      '真正展示 Taichi.js + Three.js 的协作：使用 Taichi.js 在 GPU 上计算粒子位置，Three.js 负责渲染。',
     file: 'lesson-3.vue',
     tags: ['协作', 'GPU计算', '粒子系统', '数据传输']
   }
@@ -223,14 +254,16 @@ const stage2Courses = ref([
   {
     number: 4,
     title: 'Taichi.js 字段系统',
-    description: '深入学习 Taichi.js 的字段系统，创建 GPU 上的数据结构。理解 ti.field 和 ti.Vector。',
+    description:
+      '深入学习 Taichi.js 的字段系统，创建 GPU 上的数据结构。理解 ti.field 和 ti.Vector。',
     file: 'lesson-4.vue',
     tags: ['字段系统', 'GPU数据', 'Taichi.js']
   },
   {
     number: 5,
     title: 'GPU 计算与数据传输',
-    description: '使用 Taichi.js 进行 GPU 计算，将结果传输到 Three.js 渲染。学习 ArrayBuffer 传输。',
+    description:
+      '使用 Taichi.js 进行 GPU 计算，将结果传输到 Three.js 渲染。学习 ArrayBuffer 传输。',
     file: 'lesson-5.vue',
     tags: ['数据传输', 'GPU计算', 'ArrayBuffer']
   },
@@ -268,6 +301,52 @@ const stage3Courses = ref([
   }
 ])
 
+// 阶段五课程
+const stage5Courses = ref([
+  {
+    number: 13,
+    title: 'Taichi.js 与 Three.js 数据交互总结',
+    description: '总结 Taichi.js 和 Three.js 的数据共享机制，对比不同数据传输模式，掌握高效的数据同步策略。',
+    file: 'lesson-13.vue',
+    tags: ['数据共享', '性能优化', '最佳实践', '总结']
+  },
+  {
+    number: 14,
+    title: '高级物理模拟 - 柔体动力学',
+    description: '理解质点-弹簧系统，实现布料模拟，掌握约束求解方法，学习 Verlet 积分。',
+    file: 'lesson-14.vue',
+    tags: ['柔体动力学', '布料模拟', 'PBD', 'Verlet积分']
+  },
+  {
+    number: 15,
+    title: '流体动力学高级应用 - SPH 深度优化',
+    description: '深入学习 SPH 算法原理，实现空间哈希加速，优化邻近粒子搜索，添加表面张力和粘度。',
+    file: 'lesson-15.vue',
+    tags: ['流体动力学', 'SPH', '空间哈希', '高级物理']
+  },
+  {
+    number: 16,
+    title: '刚体动力学与碰撞系统',
+    description: '实现刚体物理模拟，碰撞检测与响应，接触点求解，摩擦和反弹。',
+    file: 'lesson-16.vue',
+    tags: ['刚体动力学', '碰撞检测', 'SAT', 'GJK算法']
+  },
+  {
+    number: 17,
+    title: 'GPU 加速的空间数据结构',
+    description: '掌握 GPU 上的空间分区算法，实现并行构建的加速结构，优化大规模场景查询。',
+    file: 'lesson-17.vue',
+    tags: ['空间分区', 'BVH', '并行算法', '光线追踪']
+  },
+  {
+    number: 18,
+    title: '并行算法与数值计算',
+    description: '学习经典的并行算法，理解 GPU 并行模式，实现高效数值计算。',
+    file: 'lesson-18.vue',
+    tags: ['并行算法', 'Map/Reduce', 'FFT', '数值计算']
+  }
+])
+
 // 阶段四课程
 const stage4Courses = ref([
   {
@@ -289,6 +368,13 @@ const stage4Courses = ref([
     title: '综合项目：完整演示',
     description: '综合运用所学知识，创建一个功能完整的 Taichi.js + Three.js 演示项目。',
     file: 'lesson-12.vue',
+    tags: ['综合项目', '完整演示', '最佳实践']
+  },
+  {
+    number: 13,
+    title: '第13课：Taichi.js 与 Three.js 数据交互总结',
+    description: '第13课：Taichi.js 与 Three.js 数据交互总结',
+    file: 'lesson-13.vue',
     tags: ['综合项目', '完整演示', '最佳实践']
   }
 ])
@@ -333,6 +419,9 @@ function selectCourse(course: any) {
       break
     case 12:
       currentLesson.value = Lesson12
+      break
+    case 13:
+      currentLesson.value = Lesson13
       break
     default:
       alert(`${course.title} 即将推出！`)

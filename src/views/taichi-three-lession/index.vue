@@ -219,6 +219,7 @@ import Lesson10 from './demo/lesson-10.vue'
 import Lesson11 from './demo/lesson-11.vue'
 import Lesson12 from './demo/lesson-12.vue'
 import Lesson13 from './demo/lesson-13.vue'
+import Lesson14 from './demo/lesson-14.vue'
 
 // 当前展示的课程
 const currentLesson = shallowRef<any>(null)
@@ -312,10 +313,10 @@ const stage5Courses = ref([
   },
   {
     number: 14,
-    title: '高级物理模拟 - 柔体动力学',
-    description: '理解质点-弹簧系统，实现布料模拟，掌握约束求解方法，学习 Verlet 积分。',
+    title: 'TaichiThreeBridge 实战应用',
+    description: '学习使用 TaichiThreeBridge 桥接器，简化数据交互代码，提升开发效率。包含完整的粒子系统、实例化网格和纹理传输演示。',
     file: 'lesson-14.vue',
-    tags: ['柔体动力学', '布料模拟', 'PBD', 'Verlet积分']
+    tags: ['桥接器', '实战应用', '性能优化', '完整演示']
   },
   {
     number: 15,
@@ -422,6 +423,9 @@ function selectCourse(course: any) {
       break
     case 13:
       currentLesson.value = Lesson13
+      break
+    case 14:
+      currentLesson.value = Lesson14
       break
     default:
       alert(`${course.title} 即将推出！`)

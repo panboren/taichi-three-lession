@@ -46,6 +46,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/taichi-three-lession/demo/lesson-1.vue'),
         meta: {title: 'taichi-three-lession1首页'}
     },
+
+    {
+        path: '/three-effice',
+        name: 'three-effice',
+        component: () => import('@/views/three-effice/index.vue'),
+        meta: {title: 'three-effice首页'}
+    },
+
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',

@@ -43,8 +43,14 @@ const routes: RouteRecordRaw[] = [
     {
         path: '/taichi-three-lession1',
         name: 'taichi-three-lession1',
-        component: () => import('@/views/taichi-three-lession/demo/1.vue'),
+        component: () => import('@/views/taichi-three-lession/demo/lesson-1.vue'),
         meta: {title: 'taichi-three-lession1首页'}
+    },
+    {
+        path: '/webgl-glsl',
+        name: 'webgl-glsl',
+        component: () => import('@/views/webgl-glsl/index.vue'),
+        meta: {title: 'webgl-glsl首页'}
     },
     {
         path: '/:pathMatch(.*)*',

@@ -29,5 +29,28 @@ export default {
     user: '用户管理',
     role: '角色管理',
     settings: '系统设置'
+  },
+  digitalSpace: {
+    scenes: {
+      1: {
+        title: '星云门户',
+        subtitle: '穿越数字边界，进入无限可能',
+        description: '在这里，现实与虚拟的界限开始消融'
+      },
+      2: {
+        title: '核心装置',
+        subtitle: '精密构造，科技与艺术的完美融合',
+        description: '每一个细节都承载着未来的重量'
+      },
+      3: {
+        title: '数据矩阵',
+        subtitle: '信息流中，见证未来的诞生',
+        description: '数据不再冰冷，而是有温度的思考'
+      }
+    },
+    hints: {
+      scroll: '滚动探索',
+      interaction: '拖拽旋转 · 滚轮缩放 · 点击探索'
+    }
   }
 }

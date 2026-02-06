@@ -23,6 +23,9 @@ importers:
       element-plus:
         specifier: ^2.7.0
         version: 2.13.1(vue@3.5.27(typescript@5.4.5))
+      gsap:
+        specifier: ^3.14.2
+        version: 3.14.2
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.22
@@ -50,6 +53,9 @@ importers:
       three.js:
         specifier: ^0.77.1
         version: 0.77.1
+      universal-animation-library:
+        specifier: ^1.0.0
+        version: 1.0.0
       vue:
         specifier: ^3.4.21
         version: 3.5.27(typescript@5.4.5)
@@ -1907,6 +1913,9 @@ packages:
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
 
+  gsap@3.14.2:
+    resolution: {integrity: sha512-P8/mMxVLU7o4+55+1TCnQrPmgjPKnwkzkXOK1asnR9Jg2lna4tEY5qBJjMmAaOBDDZWtlRjBXjLa0w53G/uBLA==}
+
   gzip-size@6.0.0:
     resolution: {integrity: sha512-ax7ZYomf6jqPTQ4+XCpUGyXKHk5WweS+e05MBO4/y3WJ5RkmPXNKvX+bx1behVILVwr6JSQvZAku021CHPXG3Q==}
     engines: {node: '>=10'}
@@ -3061,6 +3070,9 @@ packages:
   union-value@1.0.1:
     resolution: {integrity: sha512-tJfXmxMeWYnczCVs7XAEvIV7ieppALdyepWMkHkwciRpZraG/xwT+s2JN8+pr1+8jCRf80FFzvr+MpQeeoF4Xg==}
     engines: {node: '>=0.10.0'}
+
+  universal-animation-library@1.0.0:
+    resolution: {integrity: sha512-1YUIwNiNTnf/QZ4WzkakYXVzvJaTOHp8NlVcMj1CmWSR+rP9imprLH3/ZQwpnqjp5H+axcif8vcj70ykA6LZZQ==}
 
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
@@ -5293,6 +5305,8 @@ snapshots:
 
   graphemer@1.4.0: {}
 
+  gsap@3.14.2: {}
+
   gzip-size@6.0.0:
     dependencies:
       duplexer: 0.1.2
@@ -6562,6 +6576,8 @@ snapshots:
       get-value: 2.0.6
       is-extendable: 0.1.1
       set-value: 2.0.1
+
+  universal-animation-library@1.0.0: {}
 
   universalify@2.0.1: {}
 

@@ -1,55 +1,70 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed, ref, onMounted } from 'vue'
 import { useAppStore } from '@/store/modules/app'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import en from 'element-plus/es/locale/lang/en'
 import { ElConfigProvider } from 'element-plus'
 
-const { locale } = useI18n()
+const isReady = ref(false)
 const appStore = useAppStore()
 
-// 添加 ready 状态
-const isReady = ref(false)
-
-// Element Plus 语言包映射
 const localeMap = {
   'zh-CN': zhCn,
   'en-US': en
-}
+} as const
 
-// 动态设置 Element Plus 的语言
-const elLocale = computed(() => {
+const currentLocale = computed(() => {
   if (!appStore || !appStore.locale) return zhCn
-  const localeKey = appStore.locale as keyof typeof localeMap
-  return localeMap[localeKey] || zhCn
+
+  const locale = appStore.locale
+  if (locale && locale in localeMap) {
+    return localeMap[locale as keyof typeof localeMap]
+  }
+
+  return zhCn
 })
 
-// 调试信息
 onMounted(() => {
-  console.log('App mounted, locale:', appStore.locale)
-  console.log('elLocale:', elLocale.value)
-  setTimeout(() => {
+  // 等待下一帧确保所有依赖已初始化
+  requestAnimationFrame(() => {
     isReady.value = true
-  }, 100)
+  })
 })
-
-// 监听 locale 变化
-watch(() => appStore.locale, (newLocale) => {
-  console.log('Locale changed:', newLocale)
-}, { immediate: true })
 </script>
 
 <template>
-  <ElConfigProvider v-if="isReady" :locale="elLocale">
+  <ElConfigProvider v-if="isReady" :locale="currentLocale">
     <router-view />
   </ElConfigProvider>
-  <div v-else>Loading...</div>
+  <div v-else class="loading">
+    <span>Loading...</span>
+  </div>
 </template>
 
 <style>
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 #app {
   width: 100%;
   height: 100%;
+  overflow: hidden;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #f5f5f5;
+  color: #333;
+  font-size: 16px;
 }
 </style>

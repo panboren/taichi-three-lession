@@ -29,5 +29,28 @@ export default {
     user: 'User Management',
     role: 'Role Management',
     settings: 'Settings'
+  },
+  digitalSpace: {
+    scenes: {
+      1: {
+        title: 'Nebula Portal',
+        subtitle: 'Cross digital boundaries, enter infinite possibilities',
+        description: 'Here, the line between reality and virtuality begins to blur'
+      },
+      2: {
+        title: 'Core Device',
+        subtitle: 'Precision construction, perfect fusion of tech and art',
+        description: 'Every detail carries the weight of the future'
+      },
+      3: {
+        title: 'Data Matrix',
+        subtitle: 'Witness the birth of the future in the flow of information',
+        description: 'Data is no longer cold, but thoughtful'
+      }
+    },
+    hints: {
+      scroll: 'Scroll to Explore',
+      interaction: 'Drag to Rotate · Scroll to Zoom · Click to Explore'
+    }
   }
 }

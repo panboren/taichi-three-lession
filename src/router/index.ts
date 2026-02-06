@@ -52,12 +52,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/webgl-glsl/index.vue'),
     meta: { title: 'webgl-glsl首页' }
   },
-/*  {
+  {
     path: '/wang',
     name: 'wang',
     component: () => import('@/views/wang/index.vue'),
-    meta: { title: 'wang首页' }
-  },*/
+    meta: { title: '沉浸式数字空间', fullscreen: true }
+  },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

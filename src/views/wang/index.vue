@@ -2,19 +2,16 @@
   <div ref="containerRef" class="digital-space">
     <canvas ref="canvasRef" class="webgl-canvas" />
 
-    <!-- UI 层 -->
     <div class="ui-layer">
-      <!-- 场景指示器 -->
       <div class="scene-indicator">
         <div
-          v-for="i in 3"
+          v-for="i in SCENE_COUNT"
           :key="i"
           :class="['indicator-dot', { active: currentScene === i }]"
           @click="goToScene(i)"
         />
       </div>
 
-      <!-- 叙事文本 -->
       <div class="narrative-container">
         <div ref="textRef" class="narrative-text">
           <h1 class="glitch-text">{{ currentText.title }}</h1>
@@ -22,7 +19,6 @@
         </div>
       </div>
 
-      <!-- 滚动提示 -->
       <div class="scroll-hint" :class="{ hidden: isScrolling }">
         <span>滚动探索</span>
         <div class="mouse-icon">
@@ -30,13 +26,11 @@
         </div>
       </div>
 
-      <!-- 交互提示 -->
       <div class="interaction-hint">
         <span class="hint-text">拖拽旋转 · 滚轮缩放 · 点击探索</span>
       </div>
     </div>
 
-    <!-- 后期处理叠加层 -->
     <div class="post-processing-overlay" />
   </div>
 </template>
@@ -49,16 +43,14 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-gsap.registerPlugin(ScrollTrigger)
-
-// 响应式引用
-const containerRef = ref<HTMLDivElement>()
-const canvasRef = ref<HTMLCanvasElement>()
-const textRef = ref<HTMLDivElement>()
-const currentScene = ref(1)
-const isScrolling = ref(false)
+// 常量定义
+const SCENE_COUNT = 3
+const STAR_COUNT = 1500
+const DATA_FLOW_COUNT = 400
+const ANIMATION_FPS = 60
+const SCROLL_COOLDOWN = 1500
+const MOUSE_SENSITIVITY = 0.5
 
 // 场景叙事内容
 const scenes = [
@@ -77,7 +69,14 @@ const scenes = [
     subtitle: '信息流中，见证未来的诞生',
     description: '数据不再冰冷，而是有温度的思考'
   }
-]
+] as const
+
+// 响应式引用
+const containerRef = ref<HTMLDivElement>()
+const canvasRef = ref<HTMLCanvasElement>()
+const textRef = ref<HTMLDivElement>()
+const currentScene = ref(1)
+const isScrolling = ref(false)
 
 const currentText = computed(() => scenes[currentScene.value - 1])
 
@@ -95,108 +94,81 @@ let coreGroup: THREE.Group
 let matrixGroup: THREE.Group
 let starField: THREE.Points
 let dataFlowSystem: THREE.Points
-let ambientLight: THREE.AmbientLight
-let mainLight: THREE.DirectionalLight
-let accentLight1: THREE.PointLight
-let accentLight2: THREE.PointLight
 
-// 鼠标交互
-let mouseX = 0
-let mouseY = 0
-let targetX = 0
-let targetY = 0
+// 鼠标交互状态
+const mouseState = { x: 0, y: 0, targetX: 0, targetY: 0 }
+
+// 资源清理列表
+const disposableResources: { dispose: () => void }[] = []
 
 // 初始化 Three.js 场景
-const initThree = () => {
+const initThree = (): void => {
   const container = containerRef.value
   const canvas = canvasRef.value
   if (!container || !canvas) return
 
-  // 场景
   scene = new THREE.Scene()
   scene.fog = new THREE.FogExp2(0x000411, 0.015)
 
-  // 相机
-  camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  )
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000)
   camera.position.set(0, 0, 15)
 
-  // 渲染器
-  renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true,
-    alpha: true
-  })
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.setClearColor(0x000411, 1)
 
-  // 控制器
   controls = new OrbitControls(camera, canvas)
   controls.enableDamping = true
   controls.dampingFactor = 0.05
   controls.maxPolarAngle = Math.PI / 1.5
   controls.minDistance = 8
   controls.maxDistance = 25
+  disposableResources.push({ dispose: () => controls.dispose() })
 
-  // 灯光系统
   setupLighting()
+  createScenes()
+  setupPostProcessing()
 
-  // 创建三个场景
+  // 初始只显示第一个场景
+  coreGroup.visible = false
+  matrixGroup.visible = false
+
+  setupEventListeners()
+  animate()
+}
+
+// 设置灯光
+const setupLighting = (): void => {
+  const ambientLight = new THREE.AmbientLight(0x0a1a3a, 0.4)
+  scene.add(ambientLight)
+
+  const mainLight = new THREE.DirectionalLight(0x00f7ff, 1.2)
+  mainLight.position.set(5, 10, 7)
+  scene.add(mainLight)
+
+  const accentLight1 = new THREE.PointLight(0xff00ff, 2, 30)
+  accentLight1.position.set(-8, 5, 5)
+  scene.add(accentLight1)
+
+  const accentLight2 = new THREE.PointLight(0xff6b00, 1.5, 25)
+  accentLight2.position.set(8, -3, -5)
+  scene.add(accentLight2)
+}
+
+// 创建所有场景
+const createScenes = (): void => {
   createNebulaPortal()
   createCoreDevice()
   createDataMatrix()
   createStarField()
   createDataFlow()
-
-  // 初始隐藏非第一个场景
-  coreGroup.visible = false
-  matrixGroup.visible = false
-
-  // 后期处理
-  setupPostProcessing()
-
-  // 事件监听
-  window.addEventListener('resize', onWindowResize)
-  window.addEventListener('mousemove', onMouseMove)
-  canvas.addEventListener('wheel', onScroll, { passive: false })
-
-  // 开始动画循环
-  animate()
-}
-
-// 设置灯光
-const setupLighting = () => {
-  // 环境光 - 深空蓝
-  ambientLight = new THREE.AmbientLight(0x0a1a3a, 0.4)
-  scene.add(ambientLight)
-
-  // 主光源 - 青蓝色方向光
-  mainLight = new THREE.DirectionalLight(0x00f7ff, 1.2)
-  mainLight.position.set(5, 10, 7)
-  scene.add(mainLight)
-
-  // 点光源 1 - 霓虹洋红
-  accentLight1 = new THREE.PointLight(0xff00ff, 2, 30)
-  accentLight1.position.set(-8, 5, 5)
-  scene.add(accentLight1)
-
-  // 点光源 2 - 能量橙
-  accentLight2 = new THREE.PointLight(0xff6b00, 1.5, 25)
-  accentLight2.position.set(8, -3, -5)
-  scene.add(accentLight2)
 }
 
 // 场景1: 星云门户
-const createNebulaPortal = () => {
+const createNebulaPortal = (): void => {
   portalGroup = new THREE.Group()
 
-  // 中心环形
-  const ringGeometry = new THREE.TorusGeometry(3, 0.15, 16, 100)
   const ringMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x00f7ff,
     metalness: 0.9,
@@ -206,23 +178,16 @@ const createNebulaPortal = () => {
     transparent: true,
     opacity: 0.8
   })
-  const mainRing = new THREE.Mesh(ringGeometry, ringMaterial)
+
+  const mainRing = new THREE.Mesh(new THREE.TorusGeometry(3, 0.15, 16, 100), ringMaterial)
   portalGroup.add(mainRing)
 
-  // 内环
-  const innerRing = new THREE.Mesh(
-    new THREE.TorusGeometry(2, 0.1, 16, 80),
-    ringMaterial.clone()
-  )
+  const innerRing = new THREE.Mesh(new THREE.TorusGeometry(2, 0.1, 16, 80), ringMaterial.clone())
   innerRing.material.emissiveIntensity = 0.8
   innerRing.rotation.x = Math.PI / 3
   portalGroup.add(innerRing)
 
-  // 外环
-  const outerRing = new THREE.Mesh(
-    new THREE.TorusGeometry(4.5, 0.08, 16, 120),
-    ringMaterial.clone()
-  )
+  const outerRing = new THREE.Mesh(new THREE.TorusGeometry(4.5, 0.08, 16, 120), ringMaterial.clone())
   outerRing.material.emissive = new THREE.Color(0xff00ff)
   outerRing.material.emissiveIntensity = 0.3
   outerRing.rotation.y = Math.PI / 4
@@ -230,89 +195,89 @@ const createNebulaPortal = () => {
 
   // 能量粒子环
   for (let i = 0; i < 3; i++) {
-    const particleRingGeometry = new THREE.RingGeometry(3.5 + i * 0.5, 3.5 + i * 0.5 + 0.02, 64)
     const particleRingMaterial = new THREE.MeshBasicMaterial({
       color: i % 2 === 0 ? 0x00f7ff : 0xff00ff,
       transparent: true,
       opacity: 0.3 - i * 0.08,
       side: THREE.DoubleSide
     })
-    const particleRing = new THREE.Mesh(particleRingGeometry, particleRingMaterial)
+    const particleRing = new THREE.Mesh(
+      new THREE.RingGeometry(3.5 + i * 0.5, 3.5 + i * 0.5 + 0.02, 64),
+      particleRingMaterial
+    )
     particleRing.rotation.x = Math.PI / 2 + i * 0.3
     portalGroup.add(particleRing)
   }
 
-  // 中心能量球
-  const energyGeometry = new THREE.SphereGeometry(1.2, 32, 32)
-  const energyMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0x00f7ff,
-    metalness: 0.5,
-    roughness: 0,
-    transmission: 0.8,
-    thickness: 1,
-    emissive: 0x00f7ff,
-    emissiveIntensity: 0.3
-  })
-  const energyCore = new THREE.Mesh(energyGeometry, energyMaterial)
+  const energyCore = new THREE.Mesh(
+    new THREE.SphereGeometry(1.2, 32, 32),
+    new THREE.MeshPhysicalMaterial({
+      color: 0x00f7ff,
+      metalness: 0.5,
+      roughness: 0,
+      transmission: 0.8,
+      thickness: 1,
+      emissive: 0x00f7ff,
+      emissiveIntensity: 0.3
+    })
+  )
   portalGroup.add(energyCore)
 
   scene.add(portalGroup)
 }
 
 // 场景2: 核心装置
-const createCoreDevice = () => {
+const createCoreDevice = (): void => {
   coreGroup = new THREE.Group()
 
-  // 主体立方体框架
-  const frameGeometry = new THREE.BoxGeometry(4, 4, 4)
-  const frameEdges = new THREE.EdgesGeometry(frameGeometry)
-  const frameMaterial = new THREE.LineBasicMaterial({ color: 0x00f7ff, linewidth: 2 })
-  const frame = new THREE.LineSegments(frameEdges, frameMaterial)
+  const frame = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(4, 4, 4)),
+    new THREE.LineBasicMaterial({ color: 0x00f7ff })
+  )
   coreGroup.add(frame)
 
-  // 玻璃面板
-  const glassGeometry = new THREE.BoxGeometry(3.5, 3.5, 3.5)
-  const glassMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0x0a1a3a,
-    metalness: 0.1,
-    roughness: 0.05,
-    transmission: 0.9,
-    thickness: 0.5,
-    transparent: true,
-    opacity: 0.3
-  })
-  const glassBox = new THREE.Mesh(glassGeometry, glassMaterial)
+  const glassBox = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, 3.5, 3.5),
+    new THREE.MeshPhysicalMaterial({
+      color: 0x0a1a3a,
+      metalness: 0.1,
+      roughness: 0.05,
+      transmission: 0.9,
+      thickness: 0.5,
+      transparent: true,
+      opacity: 0.3
+    })
+  )
   coreGroup.add(glassBox)
 
-  // 旋转核心
-  const coreGeometry = new THREE.IcosahedronGeometry(1.2, 0)
-  const coreMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xff6b00,
-    metalness: 0.9,
-    roughness: 0.2,
-    emissive: 0xff6b00,
-    emissiveIntensity: 0.4
-  })
-  const rotatingCore = new THREE.Mesh(coreGeometry, coreMaterial)
+  const rotatingCore = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(1.2, 0),
+    new THREE.MeshPhysicalMaterial({
+      color: 0xff6b00,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: 0xff6b00,
+      emissiveIntensity: 0.4
+    })
+  )
   rotatingCore.name = 'rotatingCore'
   coreGroup.add(rotatingCore)
 
   // 卫星环
   for (let i = 0; i < 4; i++) {
     const satelliteGroup = new THREE.Group()
-
-    const satelliteGeometry = new THREE.OctahedronGeometry(0.3, 0)
-    const satelliteMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x00f7ff,
-      metalness: 0.8,
-      roughness: 0.3,
-      emissive: 0x00f7ff,
-      emissiveIntensity: 0.3
-    })
-    const satellite = new THREE.Mesh(satelliteGeometry, satelliteMaterial)
+    const satellite = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.3, 0),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x00f7ff,
+        metalness: 0.8,
+        roughness: 0.3,
+        emissive: 0x00f7ff,
+        emissiveIntensity: 0.3
+      })
+    )
     satellite.position.x = 2.5
     satelliteGroup.add(satellite)
-
     satelliteGroup.rotation.z = (i / 4) * Math.PI * 2
     satelliteGroup.name = `satellite${i}`
     coreGroup.add(satelliteGroup)
@@ -322,28 +287,25 @@ const createCoreDevice = () => {
 }
 
 // 场景3: 数据矩阵
-const createDataMatrix = () => {
+const createDataMatrix = (): void => {
   matrixGroup = new THREE.Group()
-
-  // 矩阵网格
   const gridSize = 6
   const spacing = 1.5
-  const baseY = -gridSize * spacing / 2
 
+  // 创建数据立方体
   for (let x = 0; x < gridSize; x++) {
     for (let y = 0; y < gridSize; y++) {
-      const dataCubeGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8)
-
       const heightRatio = (Math.sin(x * 0.8) + Math.cos(y * 0.8) + 2) / 4
-      const dataCubeMaterial = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color().setHSL(0.55 + heightRatio * 0.15, 0.8, 0.3 + heightRatio * 0.3),
-        metalness: 0.7,
-        roughness: 0.2,
-        emissive: new THREE.Color().setHSL(0.55 + heightRatio * 0.15, 0.8, 0.1),
-        emissiveIntensity: heightRatio * 0.5
-      })
-
-      const dataCube = new THREE.Mesh(dataCubeGeometry, dataCubeMaterial)
+      const dataCube = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 0.8, 0.8),
+        new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color().setHSL(0.55 + heightRatio * 0.15, 0.8, 0.3 + heightRatio * 0.3),
+          metalness: 0.7,
+          roughness: 0.2,
+          emissive: new THREE.Color().setHSL(0.55 + heightRatio * 0.15, 0.8, 0.1),
+          emissiveIntensity: heightRatio * 0.5
+        })
+      )
       dataCube.position.set(
         (x - gridSize / 2 + 0.5) * spacing,
         (y - gridSize / 2 + 0.5) * spacing,
@@ -355,7 +317,7 @@ const createDataMatrix = () => {
     }
   }
 
-  // 连接线
+  // 创建连接线
   const lineMaterial = new THREE.LineBasicMaterial({
     color: 0x00f7ff,
     transparent: true,
@@ -364,30 +326,20 @@ const createDataMatrix = () => {
 
   for (let x = 0; x < gridSize; x++) {
     for (let y = 0; y < gridSize; y++) {
-      if (x < gridSize - 1) {
-        const points = []
+      const createLine = (dx: number, dy: number): void => {
         const startCube = matrixGroup.getObjectByName(`dataCube_${x}_${y}`) as THREE.Mesh
-        const endCube = matrixGroup.getObjectByName(`dataCube_${x + 1}_${y}`) as THREE.Mesh
+        const endCube = matrixGroup.getObjectByName(`dataCube_${x + dx}_${y + dy}`) as THREE.Mesh
         if (startCube && endCube) {
-          points.push(startCube.position)
-          points.push(endCube.position)
-          const lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
-          const line = new THREE.Line(lineGeometry, lineMaterial)
+          const line = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([startCube.position, endCube.position]),
+            lineMaterial
+          )
           matrixGroup.add(line)
         }
       }
-      if (y < gridSize - 1) {
-        const points = []
-        const startCube = matrixGroup.getObjectByName(`dataCube_${x}_${y}`) as THREE.Mesh
-        const endCube = matrixGroup.getObjectByName(`dataCube_${x}_${y + 1}`) as THREE.Mesh
-        if (startCube && endCube) {
-          points.push(startCube.position)
-          points.push(endCube.position)
-          const lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
-          const line = new THREE.Line(lineGeometry, lineMaterial)
-          matrixGroup.add(line)
-        }
-      }
+
+      if (x < gridSize - 1) createLine(1, 0)
+      if (y < gridSize - 1) createLine(0, 1)
     }
   }
 
@@ -395,13 +347,12 @@ const createDataMatrix = () => {
 }
 
 // 创建星空背景
-const createStarField = () => {
-  const starCount = 2000
+const createStarField = (): void => {
   const starGeometry = new THREE.BufferGeometry()
-  const positions = new Float32Array(starCount * 3)
-  const colors = new Float32Array(starCount * 3)
+  const positions = new Float32Array(STAR_COUNT * 3)
+  const colors = new Float32Array(STAR_COUNT * 3)
 
-  for (let i = 0; i < starCount; i++) {
+  for (let i = 0; i < STAR_COUNT; i++) {
     const radius = 50 + Math.random() * 100
     const theta = Math.random() * Math.PI * 2
     const phi = Math.acos(2 * Math.random() - 1)
@@ -410,7 +361,6 @@ const createStarField = () => {
     positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta)
     positions[i * 3 + 2] = radius * Math.cos(phi)
 
-    // 随机颜色：偏青蓝和洋红
     const colorChoice = Math.random()
     if (colorChoice < 0.4) {
       colors[i * 3] = 0
@@ -430,26 +380,26 @@ const createStarField = () => {
   starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
-  const starMaterial = new THREE.PointsMaterial({
-    size: 0.3,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.8,
-    blending: THREE.AdditiveBlending
-  })
-
-  starField = new THREE.Points(starGeometry, starMaterial)
+  starField = new THREE.Points(
+    starGeometry,
+    new THREE.PointsMaterial({
+      size: 0.3,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending
+    })
+  )
   scene.add(starField)
 }
 
 // 创建数据流粒子
-const createDataFlow = () => {
-  const particleCount = 500
+const createDataFlow = (): void => {
   const geometry = new THREE.BufferGeometry()
-  const positions = new Float32Array(particleCount * 3)
+  const positions = new Float32Array(DATA_FLOW_COUNT * 3)
   const velocities = []
 
-  for (let i = 0; i < particleCount; i++) {
+  for (let i = 0; i < DATA_FLOW_COUNT; i++) {
     positions[i * 3] = (Math.random() - 0.5) * 40
     positions[i * 3 + 1] = (Math.random() - 0.5) * 40
     positions[i * 3 + 2] = (Math.random() - 0.5) * 40
@@ -463,25 +413,25 @@ const createDataFlow = () => {
 
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 
-  const material = new THREE.PointsMaterial({
-    size: 0.15,
-    color: 0x00f7ff,
-    transparent: true,
-    opacity: 0.6,
-    blending: THREE.AdditiveBlending
-  })
-
-  dataFlowSystem = new THREE.Points(geometry, material)
+  dataFlowSystem = new THREE.Points(
+    geometry,
+    new THREE.PointsMaterial({
+      size: 0.15,
+      color: 0x00f7ff,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending
+    })
+  )
   dataFlowSystem.userData.velocities = velocities
   scene.add(dataFlowSystem)
 }
 
 // 设置后期处理
-const setupPostProcessing = () => {
+const setupPostProcessing = (): void => {
   composer = new EffectComposer(renderer)
 
-  const renderPass = new RenderPass(scene, camera)
-  composer.addPass(renderPass)
+  composer.addPass(new RenderPass(scene, camera))
 
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -495,89 +445,120 @@ const setupPostProcessing = () => {
   composer.addPass(bloomPass)
 }
 
+// 设置事件监听器
+const setupEventListeners = (): void => {
+  window.addEventListener('resize', onWindowResize)
+  window.addEventListener('mousemove', onMouseMove)
+  canvasRef.value?.addEventListener('wheel', onScroll, { passive: false })
+
+  disposableResources.push({
+    dispose: () => {
+      window.removeEventListener('resize', onWindowResize)
+      window.removeEventListener('mousemove', onMouseMove)
+    }
+  })
+}
+
 // 动画循环
-const animate = () => {
+const animate = (): void => {
   animationId = requestAnimationFrame(animate)
 
   const time = Date.now() * 0.001
 
-  // 场景1动画
-  if (portalGroup.visible) {
-    portalGroup.rotation.y = time * 0.3
-    portalGroup.rotation.x = Math.sin(time * 0.5) * 0.1
-  }
-
-  // 场景2动画
-  if (coreGroup.visible) {
-    const rotatingCore = coreGroup.getObjectByName('rotatingCore')
-    if (rotatingCore) {
-      rotatingCore.rotation.x = time * 0.8
-      rotatingCore.rotation.y = time * 1.2
-    }
-
-    for (let i = 0; i < 4; i++) {
-      const satellite = coreGroup.getObjectByName(`satellite${i}`)
-      if (satellite) {
-        satellite.rotation.z = time * 0.5 + (i / 4) * Math.PI * 2
-        satellite.rotation.x = Math.sin(time + i) * 0.3
-      }
-    }
-  }
-
-  // 场景3动画
-  if (matrixGroup.visible) {
-    const gridSize = 6
-    for (let x = 0; x < gridSize; x++) {
-      for (let y = 0; y < gridSize; y++) {
-        const cube = matrixGroup.getObjectByName(`dataCube_${x}_${y}`) as THREE.Mesh
-        if (cube) {
-          const wave = Math.sin(time * 2 + x * 0.5 + y * 0.5)
-          cube.material.emissiveIntensity = (wave + 1) * 0.25
-          cube.position.z = wave * 0.5
-        }
-      }
-    }
-  }
-
-  // 星空旋转
-  if (starField) {
-    starField.rotation.y = time * 0.02
-  }
-
-  // 数据流粒子更新
-  if (dataFlowSystem) {
-    const positions = dataFlowSystem.geometry.attributes.position.array as Float32Array
-    const velocities = dataFlowSystem.userData.velocities
-
-    for (let i = 0; i < velocities.length; i++) {
-      positions[i * 3] += velocities[i].x
-      positions[i * 3 + 1] += velocities[i].y
-      positions[i * 3 + 2] += velocities[i].z
-
-      // 边界检查，循环
-      const range = 20
-      if (Math.abs(positions[i * 3]) > range) positions[i * 3] *= -0.9
-      if (Math.abs(positions[i * 3 + 1]) > range) positions[i * 3 + 1] *= -0.9
-      if (Math.abs(positions[i * 3 + 2]) > range) positions[i * 3 + 2] *= -0.9
-    }
-
-    dataFlowSystem.geometry.attributes.position.needsUpdate = true
-    dataFlowSystem.rotation.y = time * 0.1
-  }
-
-  // 相机平滑跟随鼠标
-  targetX = mouseX * 0.5
-  targetY = mouseY * 0.3
-  camera.position.x += (targetX - camera.position.x) * 0.02
-  camera.position.y += (-targetY - camera.position.y) * 0.02
-  camera.lookAt(0, 0, 0)
+  updatePortalAnimation(time)
+  updateCoreAnimation(time)
+  updateMatrixAnimation(time)
+  updateStarAnimation(time)
+  updateDataFlowAnimation(time)
+  updateCameraPosition()
 
   controls.update()
   composer.render()
 }
 
+// 更新星云门户动画
+const updatePortalAnimation = (time: number): void => {
+  if (!portalGroup.visible) return
+  portalGroup.rotation.y = time * 0.3
+  portalGroup.rotation.x = Math.sin(time * 0.5) * 0.1
+}
+
+// 更新核心装置动画
+const updateCoreAnimation = (time: number): void => {
+  if (!coreGroup.visible) return
+
+  const rotatingCore = coreGroup.getObjectByName('rotatingCore') as THREE.Mesh
+  if (rotatingCore) {
+    rotatingCore.rotation.x = time * 0.8
+    rotatingCore.rotation.y = time * 1.2
+  }
+
+  for (let i = 0; i < 4; i++) {
+    const satellite = coreGroup.getObjectByName(`satellite${i}`) as THREE.Group
+    if (satellite) {
+      satellite.rotation.z = time * 0.5 + (i / 4) * Math.PI * 2
+      satellite.rotation.x = Math.sin(time + i) * 0.3
+    }
+  }
+}
+
+// 更新数据矩阵动画
+const updateMatrixAnimation = (time: number): void => {
+  if (!matrixGroup.visible) return
+
+  const gridSize = 6
+  for (let x = 0; x < gridSize; x++) {
+    for (let y = 0; y < gridSize; y++) {
+      const cube = matrixGroup.getObjectByName(`dataCube_${x}_${y}`) as THREE.Mesh
+      if (cube) {
+        const wave = Math.sin(time * 2 + x * 0.5 + y * 0.5)
+        cube.material.emissiveIntensity = (wave + 1) * 0.25
+        cube.position.z = wave * 0.5
+      }
+    }
+  }
+}
+
+// 更新星空动画
+const updateStarAnimation = (time: number): void => {
+  if (!starField) return
+  starField.rotation.y = time * 0.02
+}
+
+// 更新数据流粒子动画
+const updateDataFlowAnimation = (time: number): void => {
+  if (!dataFlowSystem) return
+
+  const positions = dataFlowSystem.geometry.attributes.position.array as Float32Array
+  const velocities = dataFlowSystem.userData.velocities as { x: number; y: number; z: number }[]
+
+  for (let i = 0; i < velocities.length; i++) {
+    positions[i * 3] += velocities[i].x
+    positions[i * 3 + 1] += velocities[i].y
+    positions[i * 3 + 2] += velocities[i].z
+
+    const range = 20
+    if (Math.abs(positions[i * 3]) > range) positions[i * 3] *= -0.9
+    if (Math.abs(positions[i * 3 + 1]) > range) positions[i * 3 + 1] *= -0.9
+    if (Math.abs(positions[i * 3 + 2]) > range) positions[i * 3 + 2] *= -0.9
+  }
+
+  dataFlowSystem.geometry.attributes.position.needsUpdate = true
+  dataFlowSystem.rotation.y = time * 0.1
+}
+
+// 更新相机位置
+const updateCameraPosition = (): void => {
+  mouseState.targetX = mouseState.x * MOUSE_SENSITIVITY
+  mouseState.targetY = mouseState.y * 0.3
+
+  camera.position.x += (mouseState.targetX - camera.position.x) * 0.02
+  camera.position.y += (-mouseState.targetY - camera.position.y) * 0.02
+  camera.lookAt(0, 0, 0)
+}
+
 // 窗口大小调整
-const onWindowResize = () => {
+const onWindowResize = (): void => {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -585,45 +566,44 @@ const onWindowResize = () => {
 }
 
 // 鼠标移动
-const onMouseMove = (event: MouseEvent) => {
-  mouseX = (event.clientX / window.innerWidth) * 2 - 1
-  mouseY = (event.clientY / window.innerHeight) * 2 - 1
+const onMouseMove = (event: MouseEvent): void => {
+  mouseState.x = (event.clientX / window.innerWidth) * 2 - 1
+  mouseState.y = (event.clientY / window.innerHeight) * 2 - 1
 }
 
 // 滚动切换场景
-const onScroll = (event: WheelEvent) => {
+const onScroll = (event: WheelEvent): void => {
   event.preventDefault()
 
   if (isScrolling.value) return
 
   isScrolling.value = true
-  setTimeout(() => { isScrolling.value = false }, 1500)
+  setTimeout(() => { isScrolling.value = false }, SCROLL_COOLDOWN)
 
-  if (event.deltaY > 0) {
-    // 向下滚动 - 下一个场景
-    if (currentScene.value < 3) {
-      goToScene(currentScene.value + 1)
-    } else {
-      goToScene(1) // 循环回第一个
-    }
-  } else {
-    // 向上滚动 - 上一个场景
-    if (currentScene.value > 1) {
-      goToScene(currentScene.value - 1)
-    } else {
-      goToScene(3) // 循环到最后一个
-    }
-  }
+  const nextScene = event.deltaY > 0
+    ? currentScene.value < SCENE_COUNT ? currentScene.value + 1 : 1
+    : currentScene.value > 1 ? currentScene.value - 1 : SCENE_COUNT
+
+  goToScene(nextScene)
 }
 
 // 切换到指定场景
-const goToScene = (sceneIndex: number) => {
+const goToScene = (sceneIndex: number): void => {
   if (sceneIndex === currentScene.value) return
 
   const previousScene = currentScene.value
   currentScene.value = sceneIndex
 
-  // GSAP 动画过渡
+  animateSceneTransition(previousScene, sceneIndex)
+}
+
+// 场景切换动画
+const animateSceneTransition = (from: number, to: number): void => {
+  const sceneMap = { 1: portalGroup, 2: coreGroup, 3: matrixGroup } as const
+  const fromGroup = sceneMap[from as keyof typeof sceneMap]
+  const toGroup = sceneMap[to as keyof typeof sceneMap]
+
+  if (!fromGroup || !toGroup) return
 
   // 文本淡出
   gsap.to(textRef.value, {
@@ -632,8 +612,7 @@ const goToScene = (sceneIndex: number) => {
     duration: 0.4,
     ease: 'power2.in',
     onComplete: () => {
-      // 场景切换
-      switchSceneObject(previousScene, sceneIndex)
+      switchSceneObject(fromGroup, toGroup)
 
       // 文本淡入
       gsap.to(textRef.value, {
@@ -645,7 +624,7 @@ const goToScene = (sceneIndex: number) => {
     }
   })
 
-  // 相机动画
+  // 相机推拉动画
   gsap.to(camera.position, {
     z: 18,
     duration: 0.3,
@@ -661,63 +640,47 @@ const goToScene = (sceneIndex: number) => {
 }
 
 // 切换场景对象
-const switchSceneObject = (from: number, to: number) => {
-  const sceneMap: { [key: number]: THREE.Group } = {
-    1: portalGroup,
-    2: coreGroup,
-    3: matrixGroup
-  }
+const switchSceneObject = (fromGroup: THREE.Group, toGroup: THREE.Group): void => {
+  gsap.to(fromGroup.scale, {
+    x: 0,
+    y: 0,
+    z: 0,
+    duration: 0.4,
+    ease: 'back.in(1.7)',
+    onComplete: () => {
+      fromGroup.visible = false
+      fromGroup.scale.set(1, 1, 1)
 
-  const fromGroup = sceneMap[from]
-  const toGroup = sceneMap[to]
-
-  if (fromGroup && toGroup) {
-    gsap.to(fromGroup.scale, {
-      x: 0,
-      y: 0,
-      z: 0,
-      duration: 0.4,
-      ease: 'back.in(1.7)',
-      onComplete: () => {
-        fromGroup.visible = false
-        fromGroup.scale.set(1, 1, 1)
-
-        toGroup.visible = true
-        toGroup.scale.set(0, 0, 0)
-        gsap.to(toGroup.scale, {
-          x: 1,
-          y: 1,
-          z: 1,
-          duration: 0.6,
-          ease: 'back.out(1.7)'
-        })
-      }
-    })
-  }
+      toGroup.visible = true
+      toGroup.scale.set(0, 0, 0)
+      gsap.to(toGroup.scale, {
+        x: 1,
+        y: 1,
+        z: 1,
+        duration: 0.6,
+        ease: 'back.out(1.7)'
+      })
+    }
+  })
 }
 
-// 清理
-const cleanup = () => {
+// 清理资源
+const cleanup = (): void => {
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
 
-  window.removeEventListener('resize', onWindowResize)
-  window.removeEventListener('mousemove', onMouseMove)
-
-  if (canvasRef.value) {
-    canvasRef.value.removeEventListener('wheel', onScroll)
-  }
-
-  controls?.dispose()
+  disposableResources.forEach(resource => resource.dispose())
   renderer?.dispose()
   composer?.dispose()
+
+  canvasRef.value?.removeEventListener('wheel', onScroll)
 }
 
+// 初始化
 onMounted(() => {
   initThree()
 
-  // 初始文本入场动画
   gsap.from(textRef.value, {
     opacity: 0,
     y: 50,
@@ -726,7 +689,6 @@ onMounted(() => {
     delay: 0.5
   })
 
-  // 指示器入场
   gsap.from('.scene-indicator', {
     opacity: 0,
     x: -50,
@@ -735,7 +697,6 @@ onMounted(() => {
     delay: 1
   })
 
-  // 滚动提示循环动画
   gsap.to('.mouse-icon .wheel', {
     y: 12,
     duration: 1,
@@ -744,9 +705,7 @@ onMounted(() => {
   })
 })
 
-onUnmounted(() => {
-  cleanup()
-})
+onUnmounted(cleanup)
 </script>
 
 <style scoped lang="scss">
@@ -769,10 +728,7 @@ onUnmounted(() => {
 
 .ui-layer {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
   z-index: 10;
 }
@@ -828,7 +784,7 @@ onUnmounted(() => {
   font-size: 4rem;
   font-weight: 700;
   color: #00f7ff;
-  margin: 0 0 20px 0;
+  margin: 0 0 20px;
   text-shadow:
     0 0 10px rgba(0, 247, 255, 0.8),
     0 0 20px rgba(0, 247, 255, 0.6),
@@ -913,15 +869,11 @@ onUnmounted(() => {
 
 .post-processing-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
   background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 4, 17, 0.3) 100%);
 }
 
-// 响应式设计
 @media (max-width: 768px) {
   .glitch-text {
     font-size: 2.5rem;
